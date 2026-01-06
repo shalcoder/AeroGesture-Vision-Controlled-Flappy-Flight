@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Flappy Bird Arcade - Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(100px, -100vh) scale(0);
+            }
+        }
+
+        /* Glassmorphism container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8));
+            }
+
+            50% {
+                filter: drop-shadow(0 0 40px rgba(255, 0, 255, 0.8));
+            }
+        }
+
+        .header .subtitle {
+            font-size: 1.5rem;
+            color: #00ffff;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* Glass card */
+        .glass-card {
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg,
+                    transparent,
+                    rgba(0, 255, 255, 0.1),
+                    transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        .glass-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 50px rgba(0, 255, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border-color: rgba(0, 255, 255, 0.4);
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .stat-card {
+            text-align: center;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .stat-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .stat-card:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .stat-card:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .stat-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            margin-top: 50px;
+        }
+
+        .leaderboard h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #ffff00;
+            text-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 15px;
+        }
+
+        .leaderboard-table thead th {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            padding: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #00ffff;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .leaderboard-table tbody tr {
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out backwards;
+        }
+
+        .leaderboard-table tbody tr:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .leaderboard-table tbody tr:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .leaderboard-table tbody tr:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .leaderboard-table tbody tr:hover {
+            background: rgba(0, 255, 255, 0.1);
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .leaderboard-table tbody tr.rank-1 {
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
+        }
+
+        .leaderboard-table tbody tr.rank-2 {
+            background: linear-gradient(90deg, rgba(192, 192, 192, 0.1), transparent);
+        }
+
+        .leaderboard-table tbody tr.rank-3 {
+            background: linear-gradient(90deg, rgba(205, 127, 50, 0.1), transparent);
+        }
+
+        .leaderboard-table td {
+            padding: 25px;
+            font-size: 1.3rem;
+        }
+
+        .rank {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 2rem;
+        }
+
+        .rank-1 .rank {
+            color: #ffd700;
+        }
+
+        .rank-2 .rank {
+            color: #c0c0c0;
+        }
+
+        .rank-3 .rank {
+            color: #cd7f32;
+        }
+
+        .medal {
+            font-size: 2.5rem;
+            margin-right: 10px;
+        }
+
+        .player-name {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .score {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 2rem;
+            color: #00ff66;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 50px;
+        }
+
+        .btn {
+            font-family: 'Orbitron', sans-serif;
+            padding: 20px 50px;
+            font-size: 1.3rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            font-weight: 700;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ffff, #0099ff);
+            color: #000;
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 255, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff00ff, #ff0099);
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(255, 0, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255, 0, 255, 0.5);
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5rem;
+            color: #00ffff;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 255, 255, 0.1);
+            border-top: 4px solid #00ffff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 3rem;
+            }
+
+            .stat-value {
+                font-size: 2.5rem;
+            }
+
+            .leaderboard h2 {
+                font-size: 2rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated particles background -->
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <header class="header">
+            <h1>🎮 FLAPPY BIRD ARCADE</h1>
+            <p class="subtitle">Gesture Controlled • Multiplayer Dashboard</p>
+        </header>
+
+        <!-- Global Stats -->
+        <div class="stats-grid">
+            <div class="glass-card stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="total-players">-</div>
+                <div class="stat-label">Total Players</div>
+            </div>
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">🎮</div>
+                <div class="stat-value" id="total-games">-</div>
+                <div class="stat-label">Games Played</div>
+            </div>
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value" id="highest-score">-</div>
+                <div class="stat-label">Highest Score</div>
+            </div>
+
+            <div class="glass-card stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-value" id="total-playtime">-</div>
+                <div class="stat-label">Hours Played</div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="glass-card leaderboard">
+            <h2>🏆 TOP PLAYERS LEADERBOARD</h2>
+            <div id="leaderboard-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading leaderboard...
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="refreshData()">
+                <span>🔄 Refresh Data</span>
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='/leaderboard'">
+                <span>📊 Full Leaderboard</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Create animated particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Fetch and display data
+        async function loadGlobalStats() {
+            try {
+                const response = await fetch('/api/stats/global');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('total-players').textContent = stats.total_players || 0;
+                    document.getElementById('total-games').textContent = stats.total_games || 0;
+                    document.getElementById('highest-score').textContent = stats.highest_score || 0;
+
+                    const hours = Math.floor((stats.total_playtime || 0) / 3600);
+                    document.getElementById('total-playtime').textContent = hours;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('/api/leaderboard?limit=10');
+                const data = await response.json();
+
+                if (data.success && data.leaderboard.length > 0) {
+                    let html = '<table class="leaderboard-table"><thead><tr>';
+                    html += '<th>Rank</th><th>Player</th><th>Best Score</th><th>Games</th><th>Avg Score</th>';
+                    html += '</tr></thead><tbody>';
+
+                    data.leaderboard.forEach((player, index) => {
+                        const rank = index + 1;
+                        const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+                        const medal = medals[rank] || '';
+                        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+
+                        html += `<tr class="${rankClass}">`;
+                        html += `<td class="rank">${medal} #${rank}</td>`;
+                        html += `<td class="player-name">${player.username || 'Anonymous'}</td>`;
+                        html += `<td class="score">${Math.floor(player.best_score || 0)}</td>`;
+                        html += `<td>${player.games_played || 0}</td>`;
+                        html += `<td>${Math.floor(player.avg_score || 0)}</td>`;
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table>';
+                    document.getElementById('leaderboard-content').innerHTML = html;
+                } else {
+                    document.getElementById('leaderboard-content').innerHTML =
+                        '<p class="loading">No scores yet! Be the first to play!</p>';
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                document.getElementById('leaderboard-content').innerHTML =
+                    '<p class="loading">Error loading leaderboard</p>';
+            }
+        }
+
+        function refreshData() {
+            loadGlobalStats();
+            loadLeaderboard();
+        }
+
+        // Initial load
+        refreshData();
+
+        // Auto-refresh every 10 seconds
+        setInterval(refreshData, 10000);
+    </script>
+</body>
+
+</html>

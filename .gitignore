@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+
+# Databases
+*.db
+!fruit_ninja.db
+# Keeping flappybird.db out of git to avoid large binary conflicts, 
+# but sharing fruit_ninja if it's a seed. Actually, ignore all .db for safety.
+*.db
+
+# Logs
+*.log
+server_log.txt
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+capture/
+output/

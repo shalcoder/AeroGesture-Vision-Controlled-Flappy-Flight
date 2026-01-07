@@ -7,9 +7,22 @@ import math
 import requests
 import time
 import threading
+import os
+
+# --- PyInstaller Fix for MediaPipe ---
+# When running as an EXE, PyInstaller unpacks data to a temporary folder (_MEIPASS)
+# We need to ensure MediaPipe finds its models there.
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+    os.chdir(base_path)
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
 
 # --- Configuration ---
-API_URL = "http://localhost:5000/api"
+# Set this to your live URL once deployed (e.g., "https://yourname.pythonanywhere.com/api")
+PRODUCTION_URL = None 
+LOCAL_URL = "http://localhost:5000/api"
+API_URL = PRODUCTION_URL if PRODUCTION_URL else LOCAL_URL
 
 # --- Pygame Setup ---
 pygame.init()
@@ -42,10 +55,10 @@ YELLOW = (255, 255, 0)
 ORANGE = (255, 165, 0)
 
 # --- Physics Constants ---
-GRAVITY = 1600.0
-FLAP_STRENGTH = -500.0
-PIPE_SPEED = 220.0
-MAX_FALL_SPEED = 700.0
+GRAVITY = 1700.0
+FLAP_STRENGTH = -550.0
+PIPE_SPEED = 240.0
+MAX_FALL_SPEED = 800.0
 
 # --- Game Variables ---
 PIPE_GAP = 180
@@ -86,7 +99,8 @@ class GestureController:
         self.lock = threading.Lock()
         
         # Buffer for smoothing
-        self.dist_history = []
+        self.smooth_dist = 0
+        self.ema_alpha = 0.3 
         
         self.thread = threading.Thread(target=self.update, daemon=True)
         self.thread.start()
@@ -132,21 +146,20 @@ class GestureController:
                 rel_dist = (dist / hand_size) * 100
                 
                 # Smoothing
-                self.dist_history.append(rel_dist)
-                if len(self.dist_history) > 3: self.dist_history.pop(0)
-                avg_dist = sum(self.dist_history) / len(self.dist_history)
+                if self.smooth_dist == 0: self.smooth_dist = rel_dist
+                self.smooth_dist = (self.ema_alpha * rel_dist) + ((1 - self.ema_alpha) * self.smooth_dist)
                 
-                # GESTURE THRESHOLDS (Calibrated for ease)
+                # GESTURE THRESHOLDS (Calibrated for Pro mode)
                 # Trigger when distance is small, Release when larger
-                TRIGGER = 35 
-                RELEASE = 55
+                TRIGGER = 22 
+                RELEASE = 32
                 
-                if avg_dist < TRIGGER:
+                if self.smooth_dist < TRIGGER:
                     if not self.is_pinching:
                         flap_trigger = True
                         self.is_pinching = True
                     cv2.line(frame, (int(p_thumb[0]), int(p_thumb[1])), (int(p_index[0]), int(p_index[1])), (0, 255, 0), 4)
-                elif avg_dist > RELEASE:
+                elif self.smooth_dist > RELEASE:
                     self.is_pinching = False
                     cv2.line(frame, (int(p_thumb[0]), int(p_thumb[1])), (int(p_index[0]), int(p_index[1])), (0, 255, 255), 2)
                 else:
@@ -157,7 +170,7 @@ class GestureController:
                 cv2.circle(frame, (int(p_index[0]), int(p_index[1])), 6, (0, 255, 255), -1)
                 
                 # Vision Debug Text
-                cv2.putText(frame, f"Control: {int(avg_dist)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(frame, f"Control: {int(self.smooth_dist)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
             new_surface = pygame.surfarray.make_surface(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).swapaxes(0, 1))
             with self.lock:

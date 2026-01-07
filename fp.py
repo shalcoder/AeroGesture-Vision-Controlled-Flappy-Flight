@@ -9,6 +9,9 @@ import time
 import threading
 import os
 
+# --- Performance Optimization for EXE ---
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Suppress heavy logging
+
 # --- PyInstaller Fix for MediaPipe ---
 # When running as an EXE, PyInstaller unpacks data to a temporary folder (_MEIPASS)
 # We need to ensure MediaPipe finds its models there.
@@ -20,7 +23,7 @@ else:
 
 # --- Configuration ---
 # Set this to your live URL once deployed (e.g., "https://yourname.pythonanywhere.com/api")
-PRODUCTION_URL = None 
+PRODUCTION_URL = "https://Shalcoder1.pythonanywhere.com/api" 
 LOCAL_URL = "http://localhost:5000/api"
 API_URL = PRODUCTION_URL if PRODUCTION_URL else LOCAL_URL
 
@@ -37,7 +40,7 @@ SCREEN_WIDTH = CAMERA_WIDTH + GAME_WIDTH + LEADERBOARD_WIDTH
 SCREEN_HEIGHT = GAME_HEIGHT
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("🎮 Flappy Bird Pro - Realistic Edition")
+pygame.display.set_caption("AeroGesture - Vision Controlled Flight")
 clock = pygame.time.Clock()
 
 # Fonts
@@ -149,10 +152,11 @@ class GestureController:
                 if self.smooth_dist == 0: self.smooth_dist = rel_dist
                 self.smooth_dist = (self.ema_alpha * rel_dist) + ((1 - self.ema_alpha) * self.smooth_dist)
                 
-                # GESTURE THRESHOLDS (Calibrated for Pro mode)
-                # Trigger when distance is small, Release when larger
-                TRIGGER = 22 
-                RELEASE = 32
+                # GESTURE THRESHOLDS (Recalibrated for Stable Tracking)
+                # These settings match the 'tightness' of the original Pro mode 
+                # but work with the more stable Wrist-to-Base measurement.
+                TRIGGER = 45 
+                RELEASE = 65
                 
                 if self.smooth_dist < TRIGGER:
                     if not self.is_pinching:
@@ -177,7 +181,8 @@ class GestureController:
                 self.frame_surface = new_surface
                 if flap_trigger: self.gesture_flap = True
             
-            time.sleep(0.005)
+            # Optimization: Dynamic sleep to prevent CPU hogging in standalone mode
+            time.sleep(0.002)
 
     def get_state(self):
         with self.lock:
@@ -338,19 +343,19 @@ def reset_game():
 # --- API ---
 def register_player(username):
     try:
-        r = requests.post(f"{API_URL}/player/register", json={"username": username}, timeout=0.1)
+        r = requests.post(f"{API_URL}/player/register", json={"username": username}, timeout=2.0)
         if r.status_code == 200: return r.json().get('player_id')
     except: pass
     return None
 
 def submit_score(p_id, score, dur):
     if not p_id: return
-    try: requests.post(f"{API_URL}/score/submit", json={"player_id": p_id, "score": score, "duration": dur}, timeout=0.1)
+    try: requests.post(f"{API_URL}/score/submit", json={"player_id": p_id, "score": score, "duration": dur}, timeout=2.0)
     except: pass
 
 def fetch_leaderboard():
     try:
-        r = requests.get(f"{API_URL}/leaderboard?limit=10", timeout=0.1)
+        r = requests.get(f"{API_URL}/leaderboard?limit=10", timeout=2.0)
         if r.status_code == 200: return r.json().get('leaderboard', [])
     except: pass
     return []
@@ -392,7 +397,7 @@ while True:
             
     if GAME_STATE == "USERNAME":
         cx = GAME_WIDTH // 2
-        game_s.blit(title_font.render("FLAPPY BIRD ARCADE", True, NEON_MAGENTA), (cx-220, 130))
+        game_s.blit(title_font.render("AeroGesture", True, NEON_MAGENTA), (cx-130, 130))
         game_s.blit(game_font.render("ENTER HERO NAME:", True, WHITE), (cx-130, 210))
         game_s.blit(game_font.render(USERNAME + "|", True, YELLOW), (cx-50, 260))
         game_s.blit(small_font.render("PINCH GESTURE TO START", True, NEON_LIME), (cx-120, 350))
@@ -439,7 +444,9 @@ while True:
     
     if LEADERBOARD_DATA:
         for idx, row in enumerate(LEADERBOARD_DATA[:10]):
-            txt = f"#{idx+1} {row['username'][:12]:<12} {int(row['best_score'])}"
+            score_val = row.get('best_score')
+            if score_val is None: score_val = 0
+            txt = f"#{idx+1} {row['username'][:12]:<12} {int(score_val)}"
             screen.blit(small_font.render(txt, True, WHITE), (lb_x + 20, 80 + idx*38))
 
     pygame.display.flip()

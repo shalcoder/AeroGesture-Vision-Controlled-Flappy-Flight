@@ -322,7 +322,7 @@ class Pipe(pygame.sprite.Sprite):
         surface.blit(self.image, (self.rect.x - CAMERA_WIDTH, self.rect.y))
 
 def create_pipes():
-    min_h = 80
+    min_h = 55
     avail_h = GAME_HEIGHT - PIPE_GAP - (2 * min_h)
     top = min_h + random.uniform(0, 1) * avail_h
     return [Pipe(GAME_WIDTH + 50, int(top), False), Pipe(GAME_WIDTH + 50, int(GAME_HEIGHT - PIPE_GAP - top), True)]
@@ -340,25 +340,37 @@ def reset_game():
     pipe_timer = 0
     START_TIME = time.time()
 
-# --- API ---
+# --- API (Now Threaded to prevent freezing) ---
+def _bg_register(username, callback):
+    try:
+        r = requests.post(f"{API_URL}/player/register", json={"username": username}, timeout=3.0)
+        if r.status_code == 200: callback(r.json().get('player_id'))
+    except: callback(None)
+
+def _bg_submit(p_id, score, dur, callback=None):
+    try:
+        requests.post(f"{API_URL}/score/submit", json={"player_id": p_id, "score": score, "duration": dur}, timeout=3.0)
+        if callback: callback()
+    except: pass
+
+def _bg_fetch(callback):
+    try:
+        r = requests.get(f"{API_URL}/leaderboard?limit=10", timeout=3.0)
+        if r.status_code == 200: callback(r.json().get('leaderboard', []))
+    except: pass
+
 def register_player(username):
-    try:
-        r = requests.post(f"{API_URL}/player/register", json={"username": username}, timeout=2.0)
-        if r.status_code == 200: return r.json().get('player_id')
-    except: pass
-    return None
+    # This is still sync for the login screen but we'll add a connecting state
+    threading.Thread(target=_bg_register, args=(username, lambda pid: setattr(sys.modules[__name__], 'PLAYER_ID', pid)), daemon=True).start()
 
-def submit_score(p_id, score, dur):
+def submit_score_async(p_id, score, dur):
     if not p_id: return
-    try: requests.post(f"{API_URL}/score/submit", json={"player_id": p_id, "score": score, "duration": dur}, timeout=2.0)
-    except: pass
+    threading.Thread(target=_bg_submit, args=(p_id, score, dur), daemon=True).start()
 
-def fetch_leaderboard():
-    try:
-        r = requests.get(f"{API_URL}/leaderboard?limit=10", timeout=2.0)
-        if r.status_code == 200: return r.json().get('leaderboard', [])
-    except: pass
-    return []
+def fetch_leaderboard_async():
+    def update_lb(data):
+        setattr(sys.modules[__name__], 'LEADERBOARD_DATA', data)
+    threading.Thread(target=_bg_fetch, args=(update_lb,), daemon=True).start()
 
 # --- Main Game Loop ---
 while True:
@@ -374,7 +386,9 @@ while True:
         if event.type == pygame.KEYDOWN:
             if GAME_STATE == "USERNAME":
                 if event.key == pygame.K_RETURN and USERNAME:
-                    PLAYER_ID = register_player(USERNAME); reset_game()
+                    reset_game()
+                    # Start registration in background - FIXED to be async
+                    threading.Thread(target=_bg_register, args=(USERNAME, lambda pid: setattr(sys.modules[__name__], 'PLAYER_ID', pid)), daemon=True).start()
                 elif event.key == pygame.K_BACKSPACE: USERNAME = USERNAME[:-1]
                 elif event.unicode.isprintable() and len(USERNAME) < 12: USERNAME += event.unicode.upper()
             elif GAME_STATE == "PLAYING" and event.key == pygame.K_SPACE:
@@ -401,12 +415,17 @@ while True:
         game_s.blit(game_font.render("ENTER HERO NAME:", True, WHITE), (cx-130, 210))
         game_s.blit(game_font.render(USERNAME + "|", True, YELLOW), (cx-50, 260))
         game_s.blit(small_font.render("PINCH GESTURE TO START", True, NEON_LIME), (cx-120, 350))
-        if gesture_flap and USERNAME: PLAYER_ID = register_player(USERNAME); reset_game()
+        if gesture_flap and USERNAME: 
+            # Quick sync check for ID, then go
+            reset_game()
+            threading.Thread(target=_bg_register, args=(USERNAME, lambda pid: setattr(sys.modules[__name__], 'PLAYER_ID', pid)), daemon=True).start()
             
     elif GAME_STATE == "PLAYING":
         if gesture_flap: bird.flap()
         if not bird.update(dt):
-            GAME_STATE = "GAME_OVER"; submit_score(PLAYER_ID, SCORE, time.time() - START_TIME); LEADERBOARD_DATA = fetch_leaderboard()
+            GAME_STATE = "GAME_OVER"
+            submit_score_async(PLAYER_ID, SCORE, time.time() - START_TIME)
+            fetch_leaderboard_async()
         
         pipe_timer += dt
         if pipe_timer > PIPE_SPAWN_TIME:
@@ -416,7 +435,9 @@ while True:
         for p in pipes[:]:
             p.update(dt)
             if p.rect.colliderect(bird.rect):
-                GAME_STATE = "GAME_OVER"; submit_score(PLAYER_ID, SCORE, time.time() - START_TIME); LEADERBOARD_DATA = fetch_leaderboard()
+                GAME_STATE = "GAME_OVER"
+                submit_score_async(PLAYER_ID, SCORE, time.time() - START_TIME)
+                fetch_leaderboard_async()
             if not getattr(p, 'scored', False) and p.rect.right < bird.rect.left and p.rect.y == 0:
                 SCORE += 1; p.scored = True
         
@@ -439,8 +460,9 @@ while True:
     screen.blit(static_bg, (lb_x, 0), (0,0,LEADERBOARD_WIDTH, GAME_HEIGHT))
     screen.blit(small_font.render("GLOBAL TOP SCORES", True, NEON_MAGENTA), (lb_x + 50, 30))
     
-    if time.time() - LAST_LEADERBOARD_UPDATE > 10:
-        LEADERBOARD_DATA = fetch_leaderboard(); LAST_LEADERBOARD_UPDATE = time.time()
+    if time.time() - LAST_LEADERBOARD_UPDATE > 15:
+        fetch_leaderboard_async()
+        LAST_LEADERBOARD_UPDATE = time.time()
     
     if LEADERBOARD_DATA:
         for idx, row in enumerate(LEADERBOARD_DATA[:10]):
